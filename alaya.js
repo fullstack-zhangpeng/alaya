@@ -26,12 +26,10 @@ class Wallet {
      * Transfer to the destination address
      * @param {*} targets 目标地址
      */
-    transfer = async function (targets) {
+    transferOld = async function (targets) {
         let nodeInfo = await web3.ppos.rpc('admin_nodeInfo');
         let chainId = nodeInfo.protocols.platon.config.chainId;
 
-        //发送奖励的钱包私钥
-        //主网地址
         let from = this.#walletAddress.mainnet;
 
         for (let index = 0; index < targets.length; index++) {
@@ -46,14 +44,44 @@ class Wallet {
                 chainId: chainId,
                 gasPrice: web3.platon.getGasPrice(),
                 gas: "21000",
+                data: web3.utils.utf8ToHex(''),
                 nonce: nonce,
             };
             let signTx = await web3.platon.accounts.signTransaction(tx, this.#walletPrivateKey);
-            target.signTx = signTx;
             let receipt = await web3.platon.sendSignedTransaction(signTx.rawTransaction);
-            target.receipt = receipt;
+            target.transactionHash = receipt['transactionHash'];
         }
         return targets;
+    }
+
+    /**
+     * Transfer to the destination address
+     * @param {*} address 
+     * @param {*} value 
+     */
+    transfer = async function (address, value) {
+        let nodeInfo = await web3.ppos.rpc('admin_nodeInfo');
+        let chainId = nodeInfo.protocols.platon.config.chainId;
+
+        let from = this.#walletAddress.mainnet;
+
+        let nonce = web3.utils.numberToHex(await web3.platon.getTransactionCount(from));
+        var address = address
+        var value = value
+        let tx = {
+            from: from,
+            to: address,
+            value: web3.utils.toVon(value.toString(), 'atp'),
+            chainId: chainId,
+            gasPrice: web3.platon.getGasPrice(),
+            gas: "21000",
+            data: web3.utils.utf8ToHex(''),
+            nonce: nonce,
+        };
+        let signTx = await web3.platon.accounts.signTransaction(tx, this.#walletPrivateKey);
+        let receipt = await web3.platon.sendSignedTransaction(signTx.rawTransaction);
+        return receipt.transactionHash;
+        return receipt['transactionHash'];
     }
 
     /**
